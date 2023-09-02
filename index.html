@@ -58,15 +58,62 @@
                     this.grid = grid;
                 }
 
+                cursor = new Point(0, 0)
+
                 running = true
 
                 getTile(x, y) {
                     return this.grid[y][x];
                 }
-            }
-            
 
-            const genWorld = async (size=5, origin=null) => {
+                getWidth() {
+                    return this.grid[0].length;
+                }
+
+                getHeight() {
+                    return this.grid.length;
+                }
+            }
+
+            let game;
+
+            let _unkTile = new Image();
+            _unkTile.src = "./assets/unknown.png";
+            let _safTile = new Image();
+            _safTile.src = "./assets/safe.png";
+            const tiles = [_unkTile, _safTile];
+
+            let _curTop = new Image();
+            _curTop.src = "./assets/curtop.png";
+            let _curLeft = new Image();
+            _curLeft.src = "./assets/curleft.png";
+            let _curRight = new Image();
+            _curRight.src = "./assets/curright.png";
+            let _cur = new Image();
+            _cur.src = "./assets/cur.png";
+            const curTiles = [_curTop, _curLeft, _curRight, _cur];
+
+            const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d"};
+            let keysPressed = {
+                w: {
+                    down: false,
+                    canPress: true,
+                },
+                a: {
+                    down: false,
+                    canPress: true,
+                },
+                s: {
+                    down: false,
+                    canPress: true,
+                },
+                d: {
+                    down: false,
+                    canPress: true,
+                },
+            };
+
+            const runWorld = async (size=5, origin=null) => {
                 let start = origin;
                 if (!origin) {
                     start = new Point(140, 70-size*4);
@@ -74,24 +121,23 @@
                 console.log(`Generating world, size:${size}, origin:${start.x}, ${start.y}`);
                 const screen = document.getElementById("screen");
                 let ctx = screen.getContext("2d");
-                let tile = new Image();
-                tile.src = "./assets/unknown.png";
-                let game = new Grid(size, size);
+                game = new Grid(size, size);
                 console.log(game);
+
                 while (game.running) {
-                    //draw frame
+                    //draw world
                     for (let x = 0; x < size; x++) {
                         for (let y = 0; y < size; y++) {
                             const animation = game.getTile(x, y).animation;
                             ctx.globalAlpha = animation.opacity;
-                            ctx.drawImage(tile, start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
+                            ctx.drawImage(tiles[game.getTile(x, y).type], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
                             if (animation.type == 0) {
                                 if (animation.offsetY > 0) {
                                     if (animation.stage < 0) {
                                         game.getTile(x, y).animation.stage += 1;
                                     } else {
                                         game.getTile(x, y).animation.offsetY -= Math.floor((2**(1-animation.stage/2) + 1));
-                                        game.getTile(x, y).animation.opacity += Math.floor((2**(1-animation.stage) + 1))/10;
+                                        game.getTile(x, y).animation.opacity = Math.round((animation.opacity + Math.floor((2**(1-animation.stage/2) + 1))/10)*100)/100;
                                         game.getTile(x, y).animation.stage += 1;
                                     }
                                 } else {
@@ -100,12 +146,55 @@
                             }
                         }
                     }
+                    //draw cursor
+                    let curType = 0;
+                    if (game.cursor.x + 1 == game.getWidth()) {
+                        curType = 2;
+                    } 
+                    if (game.cursor.y + 1 == game.getHeight()) {
+                        if (curType) {
+                            curType = 3;
+                        } else {
+                            curType = 1;
+                        }
+                    }
+                    console.log(`${game.cursor.x} == ${game.getWidth()}; ${game.cursor.y} == ${game.getHeight()}`);
+                    ctx.drawImage(curTiles[curType], start.x - game.cursor.y * 8 + game.cursor.x * 8, start.y + game.cursor.y * 4 + game.cursor.x * 4);
                     await new Promise( resolve => setTimeout(resolve, 17));
                     ctx.clearRect(0, 0, screen.width, screen.height);
                 }
             }
-
-            genWorld(10);
+            //key presses
+            setTimeout(() => {
+                document.addEventListener("keydown", (e) => {
+                    const key = keyMap[e.key.toLowerCase()];
+                    keysPressed[key].down = true;
+                });
+                document.addEventListener("keyup", (e) => {
+                    const key = keyMap[e.key.toLowerCase()];
+                    keysPressed[key].down = false;
+                });
+                setInterval(() => {
+                    for (const key in keysPressed) {
+                        if (keysPressed[key].down && keysPressed[key].canPress) {
+                            if (key == "w") {
+                                game.cursor.y -= game.cursor.y > 0 ? 1 : 0;
+                            } else if (key == "s") {
+                                game.cursor.y += game.cursor.y < game.getHeight() - 1 ? 1 : 0;
+                            } else if (key == "a") {
+                                game.cursor.x -= game.cursor.x > 0 ? 1 : 0;
+                            } else if (key == "d") {
+                                game.cursor.x += game.cursor.x < game.getWidth() - 1 ? 1 : 0;
+                            }
+                            keysPressed[key].canPress = false
+                            setTimeout(() => {
+                                keysPressed[key].canPress = true
+                            }, 100)
+                        }
+                    }
+                }, 1)
+            }, 1000);
+            runWorld(15);
         </script>
     </body>
 </html>

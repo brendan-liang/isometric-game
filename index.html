@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>isometric minesweeper</title>
+        <style>
+            /**https://coolors.co/palette/cdb4db-ffc8dd-ffafcc-bde0fe-a2d2ff**/
+            :root {
+                --ac2: #cdb4dbff;
+                --ac1: #ffc8ddff;
+                --ac3: #ffafccff;
+                --bg1: #bde0feff;
+                --bg2: #a2d2ffff;
+            }
+            body {
+                background-color: var();
+            }
+            canvas {
+                width: 1280px;
+                height: 720px;
+                background-color: var(--bg1);
+                position: absolute;
+                left :50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                image-rendering: crisp-edges;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="screen"></canvas>
+        <script>
+            class Point {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                }
+            }
+
+            class Grid {
+                constructor(width, height) {
+                    let grid = [];
+                    for (let h = 0; h < height; h++) {
+                        let row = [];
+                        for (let w = 0; w < width; w++) {
+                            row.push({
+                                type: 0,
+                                animation: {
+                                    type: 0,
+                                    offsetX: 0,
+                                    offsetY: 10,
+                                    opacity: 0,
+                                    stage: -(h + w),
+                                }
+                            });
+                        }
+                        grid.push(row);
+                    }
+                    this.grid = grid;
+                }
+
+                running = true
+
+                getTile(x, y) {
+                    return this.grid[y][x];
+                }
+            }
+            
+
+            const genWorld = async (size=5, origin=null) => {
+                let start = origin;
+                if (!origin) {
+                    start = new Point(140, 70-size*4);
+                }
+                console.log(`Generating world, size:${size}, origin:${start.x}, ${start.y}`);
+                const screen = document.getElementById("screen");
+                let ctx = screen.getContext("2d");
+                let tile = new Image();
+                tile.src = "./assets/unknown.png";
+                let game = new Grid(size, size);
+                console.log(game);
+                while (game.running) {
+                    //draw frame
+                    for (let x = 0; x < size; x++) {
+                        for (let y = 0; y < size; y++) {
+                            const animation = game.getTile(x, y).animation;
+                            ctx.globalAlpha = animation.opacity;
+                            ctx.drawImage(tile, start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
+                            if (animation.type == 0) {
+                                if (animation.offsetY > 0) {
+                                    if (animation.stage < 0) {
+                                        game.getTile(x, y).animation.stage += 1;
+                                    } else {
+                                        game.getTile(x, y).animation.offsetY -= Math.floor((2**(1-animation.stage/2) + 1));
+                                        game.getTile(x, y).animation.opacity += Math.floor((2**(1-animation.stage) + 1))/10;
+                                        game.getTile(x, y).animation.stage += 1;
+                                    }
+                                } else {
+                                    animation == null;
+                                }
+                            }
+                        }
+                    }
+                    await new Promise( resolve => setTimeout(resolve, 17));
+                    ctx.clearRect(0, 0, screen.width, screen.height);
+                }
+            }
+
+            genWorld(10);
+        </script>
+    </body>
+</html>

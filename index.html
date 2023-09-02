@@ -15,11 +15,11 @@
                 background-color: var();
             }
             canvas {
-                width: 1280px;
-                height: 720px;
+                width: 50vw;
+                height: 50vh;
                 background-color: var(--bg1);
                 position: absolute;
-                left :50%;
+                left: 50%;
                 top: 50%;
                 transform: translate(-50%, -50%);
                 image-rendering: crisp-edges;
@@ -93,7 +93,7 @@
             _cur.src = "./assets/cur.png";
             const curTiles = [_curTop, _curLeft, _curRight, _cur];
 
-            const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d"};
+            const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d",j:"j",k:"k"};
             let keysPressed = {
                 w: {
                     down: false,
@@ -167,12 +167,16 @@
             //key presses
             setTimeout(() => {
                 document.addEventListener("keydown", (e) => {
-                    const key = keyMap[e.key.toLowerCase()];
-                    keysPressed[key].down = true;
+                    if (e.key.toLowerCase() in Object.keys(keyMap)) {
+                        const key = keyMap[e.key.toLowerCase()];
+                        keysPressed[key].down = true;                        
+                    }
                 });
                 document.addEventListener("keyup", (e) => {
-                    const key = keyMap[e.key.toLowerCase()];
-                    keysPressed[key].down = false;
+                    if (e.key.toLowerCase() in Object.keys(keyMap)) {
+                        const key = keyMap[e.key.toLowerCase()];
+                        keysPressed[key].down = false;                        
+                    }
                 });
                 setInterval(() => {
                     for (const key in keysPressed) {

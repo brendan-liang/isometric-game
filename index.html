@@ -167,13 +167,13 @@
             //key presses
             setTimeout(() => {
                 document.addEventListener("keydown", (e) => {
-                    if (e.key.toLowerCase() in Object.keys(keyMap)) {
+                    if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
                         const key = keyMap[e.key.toLowerCase()];
                         keysPressed[key].down = true;                        
                     }
                 });
                 document.addEventListener("keyup", (e) => {
-                    if (e.key.toLowerCase() in Object.keys(keyMap)) {
+                    if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
                         const key = keyMap[e.key.toLowerCase()];
                         keysPressed[key].down = false;                        
                     }

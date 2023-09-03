@@ -92,6 +92,7 @@
 
             let game;
             let init = true;
+            const frameRate = 60;
 
             const _unkTile = new Image();
             _unkTile.src = "./assets/imgs/unknown.png";
@@ -185,13 +186,9 @@
                                     }
                                 }   
                             } else if (animation.type == 1) {
-                                if (animation.stage <= 5) {
-                                    game.getTile(x, y).animation.offsetY = -0.25*(animation.stage - 1)**2 + 4;
-                                    console.log(animation.stage);
+                                if (animation.stage <= 3) {
+                                    game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
                                     game.getTile(x, y).animation.stage += 1;
-                                    if (animation.stage == 2) {
-                                        game.getTile(x, y).type = game.getTile(x, y).type == 0 ? 1 : 0;
-                                    }
                                 }
                             }
                             //check for flag
@@ -218,9 +215,11 @@
                                 keysPressed[key].down = false;                        
                             }
                         });
-                        document.addEventListener("keypress", (e) => {
-                            if (e.key.toLowerCase() == "j" && !game.getTile(game.cursor.x, game.cursor.y).flag) {
+                        document.addEventListener("keydown", (e) => {
+                            console.log(e.key.toLowerCase());
+                            if (e.key.toLowerCase() == " " && !game.getTile(game.cursor.x, game.cursor.y).flag) {
                                 popSounds[Math.floor(Math.random()*4)].play();
+                                game.getTile(game.cursor.x, game.cursor.y).type = game.getTile(game.cursor.x, game.cursor.y).type == 0 ? 1 : 0;
                                 game.getTile(game.cursor.x, game.cursor.y).animation = {
                                     type: 1,
                                     offsetX: 0,
@@ -228,15 +227,24 @@
                                     opacity: 1,
                                     stage: 0,
                                 };
-                            } else if (e.key.toLowerCase() == "k") {
+                            } else if (e.key.toLowerCase() == "shift") {
                                 if (game.getTile(game.cursor.x, game.cursor.y).type == 0) {
+                                    popSounds[Math.floor(Math.random()*4)].play();
                                     game.getTile(game.cursor.x, game.cursor.y).flag = !game.getTile(game.cursor.x, game.cursor.y).flag;
+                                    game.getTile(game.cursor.x, game.cursor.y).animation = {
+                                        type: 1,
+                                        offsetX: 0,
+                                        offsetY: 1,
+                                        opacity: 1,
+                                        stage: 0,
+                                    };
                                 }
                             }
                         })
                         setInterval(() => {
                             for (const key in keysPressed) {
                                 if (keysPressed[key].down && keysPressed[key].canPress) {
+                                    popSounds[Math.floor(Math.random()*4)].play();
                                     if (key == "w") {
                                         game.cursor.y -= game.cursor.y > 0 ? 1 : 0;
                                     } else if (key == "s") {
@@ -268,15 +276,25 @@
                         }
                     }
                     ctx.drawImage(curTiles[curType], start.x - game.cursor.y * 8 + game.cursor.x * 8, start.y + game.cursor.y * 4 + game.cursor.x * 4);
+                    //draw flags
+                    for (let x = 0; x < size; x++) {
+                        for (let y = 0; y < size; y++) {
+                            if(game.getTile(x, y).flag) {
+                                ctx.drawImage(flags[Math.floor(game.getTile(x, y).flagState)], start.x - y * 8 + x * 8 + game.getTile(x, y).animation.offsetX, start.y + y * 4 + x * 4 + game.getTile(x, y).animation.offsetY - 8);
+                                game.getTile(x, y).flagState = Math.floor(game.getTile(x, y).flagState*100)/100 == 2.9 ? 0 : game.getTile(x, y).flagState + 0.1;
+                            }
+                        }
+                    }
                     //refresh screen
-                    await new Promise( resolve => setTimeout(resolve, 17));
+                    await new Promise( resolve => setTimeout(resolve, Math.round(1000/frameRate)));
                     ctx.clearRect(0, 0, screen.width, screen.height);
                 }
             }
-            document.addEventListener("click", () => {
+            document.addEventListener("keypress", () => {
                 if (init) {
                     runWorld(15);
                     init = false;
+                    
                 }
             })
         </script>

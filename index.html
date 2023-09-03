@@ -16,19 +16,32 @@
             }
             canvas {
                 width: 50vw;
-                height: 50vh;
+                height: 28vw;
                 background-color: var(--bg1);
                 position: absolute;
                 left: 50%;
                 top: 50%;
                 transform: translate(-50%, -50%);
-                image-rendering: crisp-edges;
+                image-rendering: pixelated;
             }
         </style>
     </head>
     <body>
         <canvas id="screen"></canvas>
         <script>
+            /*
+             ______     ______     ______     __   __     _____     ______     __   __     __         __     ______     __   __     ______    
+            /\  == \   /\  == \   /\  ___\   /\ "-.\ \   /\  __-.  /\  __ \   /\ "-.\ \   /\ \       /\ \   /\  __ \   /\ "-.\ \   /\  ___\   
+            \ \  __<   \ \  __<   \ \  __\   \ \ \-.  \  \ \ \/\ \ \ \  __ \  \ \ \-.  \  \ \ \____  \ \ \  \ \  __ \  \ \ \-.  \  \ \ \__ \  
+             \ \_____\  \ \_\ \_\  \ \_____\  \ \_\\"\_\  \ \____-  \ \_\ \_\  \ \_\\"\_\  \ \_____\  \ \_\  \ \_\ \_\  \ \_\\"\_\  \ \_____\ 
+              \/_____/   \/_/ /_/   \/_____/   \/_/ \/_/   \/____/   \/_/\/_/   \/_/ \/_/   \/_____/   \/_/   \/_/\/_/   \/_/ \/_/   \/_____/ 
+            MADE BY BRENDAN LIANG
+            
+            Assets
+            Imgs - Self drawn
+            Sfx - Self recorded
+            Music - Feeling Low [Beat Prod. by YoungBerry Beats]
+            */
             class Point {
                 constructor(x, y) {
                     this.x = x;
@@ -50,7 +63,9 @@
                                     offsetY: 10,
                                     opacity: 0,
                                     stage: -(h + w),
-                                }
+                                },
+                                flag: false,
+                                flagState: 0,
                             });
                         }
                         grid.push(row);
@@ -76,24 +91,38 @@
             }
 
             let game;
+            let init = true;
 
-            let _unkTile = new Image();
-            _unkTile.src = "./assets/unknown.png";
-            let _safTile = new Image();
-            _safTile.src = "./assets/safe.png";
+            const _unkTile = new Image();
+            _unkTile.src = "./assets/imgs/unknown.png";
+            const _safTile = new Image();
+            _safTile.src = "./assets/imgs/safe.png";
             const tiles = [_unkTile, _safTile];
 
-            let _curTop = new Image();
-            _curTop.src = "./assets/curtop.png";
-            let _curLeft = new Image();
-            _curLeft.src = "./assets/curleft.png";
-            let _curRight = new Image();
-            _curRight.src = "./assets/curright.png";
-            let _cur = new Image();
-            _cur.src = "./assets/cur.png";
+            const _curTop = new Image();
+            _curTop.src = "./assets/imgs/curtop.png";
+            const _curLeft = new Image();
+            _curLeft.src = "./assets/imgs/curleft.png";
+            const _curRight = new Image();
+            _curRight.src = "./assets/imgs/curright.png";
+            const _cur = new Image();
+            _cur.src = "./assets/imgs/cur.png";
             const curTiles = [_curTop, _curLeft, _curRight, _cur];
 
-            const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d",j:"j",k:"k"};
+            const _flag1 = new Image();
+            _flag1.src = "./assets/imgs/flag1.png";
+            const _flag2 = new Image();
+            _flag2.src = "./assets/imgs/flag2.png";
+            const _flag3 = new Image();
+            _flag3.src = "./assets/imgs/flag3.png";
+            const flags = [_flag1, _flag2, _flag3]
+
+            const popSounds = [new Audio("./assets/sounds/pop1.ogg"), new Audio("./assets/sounds/pop2.ogg"), new Audio("./assets/sounds/pop3.ogg"), new Audio("./assets/sounds/pop4.ogg"), ]
+
+            const bgMusic = new Audio("./assets/sounds/feeling low.ogg");
+            bgMusic.loop = true;
+
+            const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d"};
             let keysPressed = {
                 w: {
                     down: false,
@@ -123,14 +152,28 @@
                 let ctx = screen.getContext("2d");
                 game = new Grid(size, size);
                 console.log(game);
-
+                let startTime = Date.now();
+                let firstFrame = true;
+                let buildingSounds;
                 while (game.running) {
                     //draw world
+                    if (firstFrame) {
+                        bgMusic.play();
+                        buildingSounds = setInterval(() => {
+                            if (firstFrame) {
+                                popSounds[Math.floor(Math.random()*4)].play();
+                            } else {
+                                clearInterval(buildingSounds);
+                            }
+                        }, 100);
+                    }
+
                     for (let x = 0; x < size; x++) {
                         for (let y = 0; y < size; y++) {
                             const animation = game.getTile(x, y).animation;
                             ctx.globalAlpha = animation.opacity;
                             ctx.drawImage(tiles[game.getTile(x, y).type], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
+                            //check for animation
                             if (animation.type == 0) {
                                 if (animation.offsetY > 0) {
                                     if (animation.stage < 0) {
@@ -140,12 +183,78 @@
                                         game.getTile(x, y).animation.opacity = Math.round((animation.opacity + Math.floor((2**(1-animation.stage/2) + 1))/10)*100)/100;
                                         game.getTile(x, y).animation.stage += 1;
                                     }
-                                } else {
-                                    animation == null;
+                                }   
+                            } else if (animation.type == 1) {
+                                if (animation.stage <= 5) {
+                                    game.getTile(x, y).animation.offsetY = -0.25*(animation.stage - 1)**2 + 4;
+                                    console.log(animation.stage);
+                                    game.getTile(x, y).animation.stage += 1;
+                                    if (animation.stage == 2) {
+                                        game.getTile(x, y).type = game.getTile(x, y).type == 0 ? 1 : 0;
+                                    }
                                 }
+                            }
+                            //check for flag
+                            if (game.getTile(x, y).flag) {
+                                ctx.drawImage(flags[Math.floor(game.getTile(x, y).flagState)], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY - 8);
+                                game.getTile(x, y).flagState = Math.floor(game.getTile(x, y).flagState*100)/100 == 2.9 ? 0 : game.getTile(x, y).flagState + 0.1;
                             }
                         }
                     }
+                    //add key listeners
+                    if (firstFrame && ctx.globalAlpha == 1) {
+                        clearInterval(buildingSounds);
+                        console.log(`Rendered world of size ${size} in ${Date.now() - startTime}ms`);
+                        firstFrame = false;
+                        document.addEventListener("keydown", (e) => {
+                        if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
+                            const key = keyMap[e.key.toLowerCase()];
+                            keysPressed[key].down = true;                        
+                        }
+                        });
+                        document.addEventListener("keyup", (e) => {
+                            if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
+                                const key = keyMap[e.key.toLowerCase()];
+                                keysPressed[key].down = false;                        
+                            }
+                        });
+                        document.addEventListener("keypress", (e) => {
+                            if (e.key.toLowerCase() == "j" && !game.getTile(game.cursor.x, game.cursor.y).flag) {
+                                popSounds[Math.floor(Math.random()*4)].play();
+                                game.getTile(game.cursor.x, game.cursor.y).animation = {
+                                    type: 1,
+                                    offsetX: 0,
+                                    offsetY: 1,
+                                    opacity: 1,
+                                    stage: 0,
+                                };
+                            } else if (e.key.toLowerCase() == "k") {
+                                if (game.getTile(game.cursor.x, game.cursor.y).type == 0) {
+                                    game.getTile(game.cursor.x, game.cursor.y).flag = !game.getTile(game.cursor.x, game.cursor.y).flag;
+                                }
+                            }
+                        })
+                        setInterval(() => {
+                            for (const key in keysPressed) {
+                                if (keysPressed[key].down && keysPressed[key].canPress) {
+                                    if (key == "w") {
+                                        game.cursor.y -= game.cursor.y > 0 ? 1 : 0;
+                                    } else if (key == "s") {
+                                        game.cursor.y += game.cursor.y < game.getHeight() - 1 ? 1 : 0;
+                                    } else if (key == "a") {
+                                        game.cursor.x -= game.cursor.x > 0 ? 1 : 0;
+                                    } else if (key == "d") {
+                                        game.cursor.x += game.cursor.x < game.getWidth() - 1 ? 1 : 0;
+                                    }
+                                    keysPressed[key].canPress = false
+                                    setTimeout(() => {
+                                        keysPressed[key].canPress = true
+                                    }, 200)
+                                }
+                            }
+                        }, 1)
+                    }
+                    
                     //draw cursor
                     let curType = 0;
                     if (game.cursor.x + 1 == game.getWidth()) {
@@ -158,47 +267,18 @@
                             curType = 1;
                         }
                     }
-                    console.log(`${game.cursor.x} == ${game.getWidth()}; ${game.cursor.y} == ${game.getHeight()}`);
                     ctx.drawImage(curTiles[curType], start.x - game.cursor.y * 8 + game.cursor.x * 8, start.y + game.cursor.y * 4 + game.cursor.x * 4);
+                    //refresh screen
                     await new Promise( resolve => setTimeout(resolve, 17));
                     ctx.clearRect(0, 0, screen.width, screen.height);
                 }
             }
-            //key presses
-            setTimeout(() => {
-                document.addEventListener("keydown", (e) => {
-                    if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
-                        const key = keyMap[e.key.toLowerCase()];
-                        keysPressed[key].down = true;                        
-                    }
-                });
-                document.addEventListener("keyup", (e) => {
-                    if (Object.keys(keyMap).includes(e.key.toLowerCase())) {
-                        const key = keyMap[e.key.toLowerCase()];
-                        keysPressed[key].down = false;                        
-                    }
-                });
-                setInterval(() => {
-                    for (const key in keysPressed) {
-                        if (keysPressed[key].down && keysPressed[key].canPress) {
-                            if (key == "w") {
-                                game.cursor.y -= game.cursor.y > 0 ? 1 : 0;
-                            } else if (key == "s") {
-                                game.cursor.y += game.cursor.y < game.getHeight() - 1 ? 1 : 0;
-                            } else if (key == "a") {
-                                game.cursor.x -= game.cursor.x > 0 ? 1 : 0;
-                            } else if (key == "d") {
-                                game.cursor.x += game.cursor.x < game.getWidth() - 1 ? 1 : 0;
-                            }
-                            keysPressed[key].canPress = false
-                            setTimeout(() => {
-                                keysPressed[key].canPress = true
-                            }, 100)
-                        }
-                    }
-                }, 1)
-            }, 1000);
-            runWorld(15);
+            document.addEventListener("click", () => {
+                if (init) {
+                    runWorld(15);
+                    init = false;
+                }
+            })
         </script>
     </body>
 </html>

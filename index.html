@@ -7,7 +7,7 @@
             :root {
                 --ac2: #cdb4dbff;
                 --ac1: #ffc8ddff;
-                --ac3: #ffafccff;
+                --ac3: #ffafcc;
                 --bg1: #bde0feff;
                 --bg2: #a2d2ffff;
             }
@@ -30,11 +30,11 @@
         <canvas id="screen"></canvas>
         <script>
             /*
-             ______     ______     ______     __   __     _____     ______     __   __     __         __     ______     __   __     ______    
-            /\  == \   /\  == \   /\  ___\   /\ "-.\ \   /\  __-.  /\  __ \   /\ "-.\ \   /\ \       /\ \   /\  __ \   /\ "-.\ \   /\  ___\   
-            \ \  __<   \ \  __<   \ \  __\   \ \ \-.  \  \ \ \/\ \ \ \  __ \  \ \ \-.  \  \ \ \____  \ \ \  \ \  __ \  \ \ \-.  \  \ \ \__ \  
-             \ \_____\  \ \_\ \_\  \ \_____\  \ \_\\"\_\  \ \____-  \ \_\ \_\  \ \_\\"\_\  \ \_____\  \ \_\  \ \_\ \_\  \ \_\\"\_\  \ \_____\ 
-              \/_____/   \/_/ /_/   \/_____/   \/_/ \/_/   \/____/   \/_/\/_/   \/_/ \/_/   \/_____/   \/_/   \/_/\/_/   \/_/ \/_/   \/_____/ 
+             ______     ______     ______     __   __     _____     ______     __   __          __         __     ______     __   __     ______    
+            /\  == \   /\  == \   /\  ___\   /\ "-.\ \   /\  __-.  /\  __ \   /\ "-.\ \        /\ \       /\ \   /\  __ \   /\ "-.\ \   /\  ___\   
+            \ \  __<   \ \  __<   \ \  __\   \ \ \-.  \  \ \ \/\ \ \ \  __ \  \ \ \-.  \       \ \ \____  \ \ \  \ \  __ \  \ \ \-.  \  \ \ \__ \  
+             \ \_____\  \ \_\ \_\  \ \_____\  \ \_\\"\_\  \ \____-  \ \_\ \_\  \ \_\\"\_\       \ \_____\  \ \_\  \ \_\ \_\  \ \_\\"\_\  \ \_____\ 
+              \/_____/   \/_/ /_/   \/_____/   \/_/ \/_/   \/____/   \/_/\/_/   \/_/ \/_/        \/_____/   \/_/   \/_/\/_/   \/_/ \/_/   \/_____/ 
             MADE BY BRENDAN LIANG
             
             Assets
@@ -66,6 +66,8 @@
                                 },
                                 flag: false,
                                 flagState: 0,
+                                bomb: false,
+                                nearby: 0,
                             });
                         }
                         grid.push(row);
@@ -98,7 +100,9 @@
             _unkTile.src = "./assets/imgs/unknown.png";
             const _safTile = new Image();
             _safTile.src = "./assets/imgs/safe.png";
-            const tiles = [_unkTile, _safTile];
+            const _bomTile = new Image();
+            _bomTile.src = "./assets/imgs/bomb.png"
+            const tiles = [_unkTile, _safTile, _bomTile];
 
             const _curTop = new Image();
             _curTop.src = "./assets/imgs/curtop.png";
@@ -123,6 +127,20 @@
             const bgMusic = new Audio("./assets/sounds/feeling low.ogg");
             bgMusic.loop = true;
 
+            const randInt = (min, max) => {
+                return Math.floor(Math.random() * (max-min + 1) + min);
+            }
+
+            const shuffle = (list) => {
+                for (let i = 0; i < list.length; i++) {
+                    const x = list[i];
+                    const randPos = randInt(0, list.length - 1)
+                    list[i] = list[randPos];
+                    list[randPos] = x;
+                }
+                return list;
+            }
+
             const keyMap = {w:"w",a:"a",s:"s",d:"d",arrowup:"w",arrowleft:"a",arrowdown:"s",arrowright:"d"};
             let keysPressed = {
                 w: {
@@ -143,7 +161,8 @@
                 },
             };
 
-            const runWorld = async (size=5, origin=null) => {
+            const runWorld = async (size=16, bombs=40, origin=null) => {
+                let opened = false;
                 let start = origin;
                 if (!origin) {
                     start = new Point(140, 70-size*4);
@@ -156,7 +175,44 @@
                 let startTime = Date.now();
                 let firstFrame = true;
                 let buildingSounds;
+                const checkUnopened = (x, y) => {
+                    //check for nearby unopened tiles
+                    if (game.getTile(x, y).type == 1 && game.getTile(x, y).nearby == 0) {
+                        for (let nx = x - 1; nx <= x + 1; nx++) {
+                            for (let ny = y - 1; ny <= y + 1; ny++) {
+                                if (!(nx == x && ny == y) && nx >= 0 && nx < size && ny >= 0 && ny < size && !game.getTile(nx, ny).bomb && game.getTile(nx, ny).type != 1) {
+                                    checkUnopened(nx, ny);
+                                    game.getTile(nx, ny).animation = {
+                                        type: 1,
+                                        offsetX: 0,
+                                        offsetY: 0,
+                                        opacity: 1,
+                                        stage: 0,
+                                    };
+                                }
+                            }
+                        }
+                    } else if (game.getTile(x, y).type != 1 && !game.getTile(x, y).bomb) {
+                        game.getTile(x, y).type = 1;
+                        game.getTile(x, y).animation = {
+                            type: 1,
+                            offsetX: 0,
+                            offsetY: 0,
+                            opacity: 1,
+                            stage: 0,
+                        };
+                    }
+                    return;
+                }
+                //generate bombs
+                let coords = [];
+                for (let x = 0; x < size; x++) {
+                    for (let y = 0; y < size; y++) {
+                        coords.push(new Point(x, y));
+                    }
+                }
                 while (game.running) {
+                    
                     //draw world
                     if (firstFrame) {
                         bgMusic.play();
@@ -173,6 +229,9 @@
                         for (let y = 0; y < size; y++) {
                             const animation = game.getTile(x, y).animation;
                             ctx.globalAlpha = animation.opacity;
+                            if (game.getTile(x, y).bomb) {
+                                game.getTile(x, y).type = 2;
+                            }
                             ctx.drawImage(tiles[game.getTile(x, y).type], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
                             //check for animation
                             if (animation.type == 0) {
@@ -186,9 +245,15 @@
                                     }
                                 }   
                             } else if (animation.type == 1) {
-                                if (animation.stage <= 3) {
-                                    game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
+                                if (animation.stage < 3) {
                                     game.getTile(x, y).animation.stage += 1;
+                                    if (animation.stage >= 0) {
+                                        game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
+                                        console.log(-0.5*(animation.stage - 1)**2 + 2);
+                                    }
+                                } 
+                                if (animation.stage >= 0 && game.getTile(x, y).type != 1) {
+                                    game.getTile(x, y).type = 1;
                                 }
                             }
                             //check for flag
@@ -198,6 +263,7 @@
                             }
                         }
                     }
+
                     //add key listeners
                     if (firstFrame && ctx.globalAlpha == 1) {
                         clearInterval(buildingSounds);
@@ -216,17 +282,53 @@
                             }
                         });
                         document.addEventListener("keydown", (e) => {
-                            console.log(e.key.toLowerCase());
-                            if (e.key.toLowerCase() == " " && !game.getTile(game.cursor.x, game.cursor.y).flag) {
+                            if (e.key.toLowerCase() == " " && !game.getTile(game.cursor.x, game.cursor.y).flag && !game.getTile(game.cursor.x, game.cursor.y).type == 1) {
                                 popSounds[Math.floor(Math.random()*4)].play();
-                                game.getTile(game.cursor.x, game.cursor.y).type = game.getTile(game.cursor.x, game.cursor.y).type == 0 ? 1 : 0;
-                                game.getTile(game.cursor.x, game.cursor.y).animation = {
-                                    type: 1,
-                                    offsetX: 0,
-                                    offsetY: 1,
-                                    opacity: 1,
-                                    stage: 0,
-                                };
+                                //gen bombs
+                                let possibleCoords = [];
+                                if (!opened) {
+                                    opened = true;
+                                    for (let i = 0; i < coords.length; i++) {
+                                        if (!(game.cursor.y - 2 <= coords[i].y && game.cursor.y + 2 >= coords[i].y && game.cursor.x - 2 <= coords[i].x && game.cursor.x + 2 >= coords[i].x)) {
+                                            possibleCoords.push(coords[i]);
+                                        }
+                                    }
+                                    possibleCoords = shuffle(possibleCoords);
+                                    for (let i = 0; i < bombs; i++) {
+                                        const bomb = possibleCoords[i];
+                                        game.getTile(bomb.x, bomb.y).bomb = true;
+                                        for (let x = bomb.x - 1; x <= bomb.x + 1; x++) {
+                                            for (let y = bomb.y - 1; y <= bomb.y + 1; y++) {
+                                                if (x >= 0 && x < size && y >= 0 && y < size && !game.getTile(x, y).bomb) {
+                                                    game.getTile(x, y).nearby += 1;                                                    
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (game.getTile(game.cursor.x, game.cursor.y).bomb) {
+                                    //blow up
+                                    game.getTile(game.cursor.x, game.cursor.y).animation = {
+                                        type: 1,
+                                        offsetX: 0,
+                                        offsetY: 1,
+                                        opacity: 1,
+                                        stage: 0,
+                                    };
+                                } else {
+                                    game.getTile(game.cursor.x, game.cursor.y).type = 1;
+                                    game.getTile(game.cursor.x, game.cursor.y).animation = {
+                                        type: 1,
+                                        offsetX: 0,
+                                        offsetY: 1,
+                                        opacity: 1,
+                                        stage: 0,
+                                    };
+                                    checkUnopened(game.cursor.x, game.cursor.y)
+                                    
+                                    
+                                }
+
                             } else if (e.key.toLowerCase() == "shift") {
                                 if (game.getTile(game.cursor.x, game.cursor.y).type == 0) {
                                     popSounds[Math.floor(Math.random()*4)].play();
@@ -234,7 +336,7 @@
                                     game.getTile(game.cursor.x, game.cursor.y).animation = {
                                         type: 1,
                                         offsetX: 0,
-                                        offsetY: 1,
+                                        offsetY: 0,
                                         opacity: 1,
                                         stage: 0,
                                     };
@@ -254,10 +356,11 @@
                                     } else if (key == "d") {
                                         game.cursor.x += game.cursor.x < game.getWidth() - 1 ? 1 : 0;
                                     }
-                                    keysPressed[key].canPress = false
+                                    keysPressed[key].canPress = false;
                                     setTimeout(() => {
-                                        keysPressed[key].canPress = true
-                                    }, 200)
+                                        keysPressed[key].canPress = true;
+                                    }, 200);
+                                    console.log(new Point(game.cursor.x, game.cursor.y), game.getTile(game.cursor.x, game.cursor.y).nearby);
                                 }
                             }
                         }, 1)
@@ -292,11 +395,10 @@
             }
             document.addEventListener("keypress", () => {
                 if (init) {
-                    runWorld(15);
+                    runWorld(16, 2);
                     init = false;
-                    
                 }
             })
         </script>
     </body>
-</html>
+</html> 

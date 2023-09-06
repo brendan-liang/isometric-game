@@ -13,10 +13,12 @@
             }
             body {
                 background-color: var();
+                overflow: hidden;
             }
             canvas {
-                width: 50vw;
-                height: 28vw;
+                width: 100vw;
+                height: 56vw;
+                
                 background-color: var(--bg1);
                 position: absolute;
                 left: 50%;
@@ -120,7 +122,26 @@
             _flag2.src = "./assets/imgs/flag2.png";
             const _flag3 = new Image();
             _flag3.src = "./assets/imgs/flag3.png";
-            const flags = [_flag1, _flag2, _flag3]
+            const flags = [_flag1, _flag2, _flag3];
+
+            const _overlay1 = new Image();
+            _overlay1.src = "./assets/imgs/overlay1.png";
+            const _overlay2 = new Image();
+            _overlay2.src = "./assets/imgs/overlay2.png";
+            const _overlay3 = new Image();
+            _overlay3.src = "./assets/imgs/overlay3.png";
+            const _overlay4 = new Image();
+            _overlay4.src = "./assets/imgs/overlay4.png";
+            const _overlay5 = new Image();
+            _overlay5.src = "./assets/imgs/overlay5.png";
+            const _overlay6 = new Image();
+            _overlay6.src = "./assets/imgs/overlay6.png";
+            const _overlay7 = new Image();
+            _overlay7.src = "./assets/imgs/overlay7.png";
+            const _overlay8 = new Image();
+            _overlay8.src = "./assets/imgs/overlay8.png";
+
+            const overlayTiles = [_overlay1, _overlay2, _overlay3, _overlay4, _overlay5, _overlay6, _overlay7, _overlay8];
 
             const popSounds = [new Audio("./assets/sounds/pop1.ogg"), new Audio("./assets/sounds/pop2.ogg"), new Audio("./assets/sounds/pop3.ogg"), new Audio("./assets/sounds/pop4.ogg"), ]
 
@@ -161,15 +182,29 @@
                 },
             };
 
+            const solve = async (x=0) => {
+                for (let x = 0; x < game.getWidth(); x++) {
+                    for (let y = 0; y < game.getHeight(); y++) {
+                        if (game.getTile(x, y).bomb) {
+                            game.getTile(x, y).flag = true;
+                        } else {
+                            game.getTile(x, y).type = 1;
+                        }
+                    }
+                }
+            }
+
             const runWorld = async (size=16, bombs=40, origin=null) => {
+                const screen = document.getElementById("screen");
+                let ctx = screen.getContext("2d");
+                screen.width = 1280;
+                screen.height= 600;
                 let opened = false;
                 let start = origin;
                 if (!origin) {
-                    start = new Point(140, 70-size*4);
+                    start = new Point(screen.width/2, screen.height/2-size*4);
                 }
                 console.log(`Generating world, size:${size}, origin:${start.x}, ${start.y}`);
-                const screen = document.getElementById("screen");
-                let ctx = screen.getContext("2d");
                 game = new Grid(size, size);
                 console.log(game);
                 let startTime = Date.now();
@@ -180,8 +215,8 @@
                     if (game.getTile(x, y).type == 1 && game.getTile(x, y).nearby == 0) {
                         for (let nx = x - 1; nx <= x + 1; nx++) {
                             for (let ny = y - 1; ny <= y + 1; ny++) {
-                                if (!(nx == x && ny == y) && nx >= 0 && nx < size && ny >= 0 && ny < size && !game.getTile(nx, ny).bomb && game.getTile(nx, ny).type != 1) {
-                                    checkUnopened(nx, ny);
+                                if (!(nx == x && ny == y) && nx >= 0 && nx < size && ny >= 0 && ny < size && !game.getTile(nx, ny).bomb && game.getTile(nx, ny).type != 1 && !game.getTile(nx, ny).flag) {
+                                    game.getTile(nx, ny).type = 1;
                                     game.getTile(nx, ny).animation = {
                                         type: 1,
                                         offsetX: 0,
@@ -189,10 +224,11 @@
                                         opacity: 1,
                                         stage: 0,
                                     };
+                                    checkUnopened(nx, ny);
                                 }
                             }
                         }
-                    } else if (game.getTile(x, y).type != 1 && !game.getTile(x, y).bomb) {
+                    } else if (!game.getTile(x, y).bomb) {
                         game.getTile(x, y).type = 1;
                         game.getTile(x, y).animation = {
                             type: 1,
@@ -229,9 +265,9 @@
                         for (let y = 0; y < size; y++) {
                             const animation = game.getTile(x, y).animation;
                             ctx.globalAlpha = animation.opacity;
-                            if (game.getTile(x, y).bomb) {
-                                game.getTile(x, y).type = 2;
-                            }
+                            // if (game.getTile(x, y).bomb) {
+                            //     game.getTile(x, y).type = 2;
+                            // }
                             ctx.drawImage(tiles[game.getTile(x, y).type], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
                             //check for animation
                             if (animation.type == 0) {
@@ -255,12 +291,30 @@
                                 if (animation.stage >= 0 && game.getTile(x, y).type != 1) {
                                     game.getTile(x, y).type = 1;
                                 }
+                            }  else if (animation.type == 2) {
+                                if (animation.stage < 3) {
+                                    game.getTile(x, y).animation.stage += 1;
+                                    if (animation.stage >= 0) {
+                                        game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
+                                        console.log(-0.5*(animation.stage - 1)**2 + 2);
+                                    }
+                                } 
                             }
                             //check for flag
                             if (game.getTile(x, y).flag) {
                                 ctx.drawImage(flags[Math.floor(game.getTile(x, y).flagState)], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY - 8);
                                 game.getTile(x, y).flagState = Math.floor(game.getTile(x, y).flagState*100)/100 == 2.9 ? 0 : game.getTile(x, y).flagState + 0.1;
                             }
+                            //check for number
+                            let ovOpac = 1-(Math.sqrt((game.cursor.x - x)**2 + (game.cursor.y - y)**2)/20*3);
+                            if (!(ovOpac >= 0.5)) {
+                                ovOpac = 0.5;
+                            }
+                            ctx.globalAlpha *= ovOpac;
+                            if (game.getTile(x, y).nearby > 0 && game.getTile(x, y).type == 1) {
+                                ctx.drawImage(overlayTiles[game.getTile(x, y).nearby - 1], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY)
+                            }
+                            ctx.globalAlpha = animation.opacity;
                         }
                     }
 
@@ -308,8 +362,9 @@
                                 }
                                 if (game.getTile(game.cursor.x, game.cursor.y).bomb) {
                                     //blow up
+                                    game.getTile(game.cursor.x, game.cursor.y).type = 2;
                                     game.getTile(game.cursor.x, game.cursor.y).animation = {
-                                        type: 1,
+                                        type: 2,
                                         offsetX: 0,
                                         offsetY: 1,
                                         opacity: 1,
@@ -324,9 +379,7 @@
                                         opacity: 1,
                                         stage: 0,
                                     };
-                                    checkUnopened(game.cursor.x, game.cursor.y)
-                                    
-                                    
+                                    checkUnopened(game.cursor.x, game.cursor.y);
                                 }
 
                             } else if (e.key.toLowerCase() == "shift") {
@@ -334,7 +387,7 @@
                                     popSounds[Math.floor(Math.random()*4)].play();
                                     game.getTile(game.cursor.x, game.cursor.y).flag = !game.getTile(game.cursor.x, game.cursor.y).flag;
                                     game.getTile(game.cursor.x, game.cursor.y).animation = {
-                                        type: 1,
+                                        type: 2,
                                         offsetX: 0,
                                         offsetY: 0,
                                         opacity: 1,
@@ -395,7 +448,7 @@
             }
             document.addEventListener("keypress", () => {
                 if (init) {
-                    runWorld(16, 2);
+                    runWorld(10, 10);
                     init = false;
                 }
             })

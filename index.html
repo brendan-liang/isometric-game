@@ -16,10 +16,9 @@
                 background-color: var(--bg1);
                 overflow: hidden;
             }
-            canvas {
+            #screen {
                 width: 100vw;
                 height: 56vw;
-                
                 background-color: var(--bg1);
                 position: absolute;
                 left: 50%;
@@ -27,11 +26,37 @@
                 transform: translate(-50%, -50%);
                 image-rendering: pixelated;
             }
+            #settings {
+                width: 32px;
+                height: 32px;
+                cursor: pointer;
+                position: fixed;
+                top: 5px;
+                left: 5px;
+                z-index: 99;
+                transition: cubic-bezier(0.075, 0.82, 0.165, 1), 1s;
+            }
+            #settings:hover {
+                transform: rotate(90deg);
+            }
+            #cover {
+                background-color: rgba(255, 255, 255, 0.5);
+                width: 100vw;
+                height: 100vh;
+                z-index: 99;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                opacity: 0;
+            }
         </style>
         <link rel="icon" type="image/x-icon" href="assets/imgs/unknown.png">
     </head>
     <body>
         <canvas id="screen"></canvas>
+        <img id="settings" src="assets/imgs/cog.png"></img>
+        <div id="cover"></div>
         <script>
             /*
              ______     ______     ______     __   __     _____     ______     __   __          __         __     ______     __   __     ______    
@@ -196,7 +221,7 @@
                 }
             }
 
-            const runWorld = async (size=16, bombs=40, origin=null) => {
+            const runWorld = (size=16, bombs=40, origin=null) => {
                 const screen = document.getElementById("screen");
                 let ctx = screen.getContext("2d");
                 screen.width = 640;
@@ -245,9 +270,12 @@
                 const checkWin = () => {
                     for (let x = 0; x < size; x++) {
                         for (let y = 0; y < size; y++) {
-
+                            if (game.getTile(x, y).bomb != game.getTile(x, y).flag) {
+                                return false;
+                            }
                         }
                     }
+                    return true;
                 }
                 //generate bombs
                 let coords = [];
@@ -294,7 +322,6 @@
                                     game.getTile(x, y).animation.stage += 1;
                                     if (animation.stage >= 0) {
                                         game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
-                                        console.log(-0.5*(animation.stage - 1)**2 + 2);
                                     }
                                 } 
                                 if (animation.stage >= 0 && game.getTile(x, y).type != 1) {
@@ -305,7 +332,6 @@
                                     game.getTile(x, y).animation.stage += 1;
                                     if (animation.stage >= 0) {
                                         game.getTile(x, y).animation.offsetY = -0.5*(animation.stage - 1)**2 + 2;
-                                        console.log(-0.5*(animation.stage - 1)**2 + 2);
                                     }
                                 } 
                             }
@@ -422,7 +448,6 @@
                                     setTimeout(() => {
                                         keysPressed[key].canPress = true;
                                     }, 200);
-                                    console.log(new Point(game.cursor.x, game.cursor.y), game.getTile(game.cursor.x, game.cursor.y).nearby);
                                 }
                             }
                         }, 1)
@@ -450,11 +475,27 @@
                             }
                         }
                     }
+                    //check for win/loss
+                    if (checkWin() && opened) {
+                        console.log("win found");
+                        game.running = false;
+                    }
                     //refresh screen
-                    requestAnimationFrame(run);
+                    if (game.running) {
+                        requestAnimationFrame(run);
+                    } else {
+                        document.getElementById("cover").style.opacity = 1;
+                        if (checkWin()){
+
+                        } else {
+
+                        }
+                    }
+
                 }
                 run();
             }
+
             document.addEventListener("keypress", () => {
                 if (init) {
                     runWorld(16, 40);

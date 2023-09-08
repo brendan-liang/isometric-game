@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>isometric minesweeper</title>
+        
         <style>
             /**https://coolors.co/palette/cdb4db-ffc8dd-ffafcc-bde0fe-a2d2ff**/
             :root {
@@ -12,7 +13,7 @@
                 --bg2: #a2d2ffff;
             }
             body {
-                background-color: var();
+                background-color: var(--bg1);
                 overflow: hidden;
             }
             canvas {
@@ -27,6 +28,7 @@
                 image-rendering: pixelated;
             }
         </style>
+        <link rel="icon" type="image/x-icon" href="assets/imgs/unknown.png">
     </head>
     <body>
         <canvas id="screen"></canvas>
@@ -197,8 +199,8 @@
             const runWorld = async (size=16, bombs=40, origin=null) => {
                 const screen = document.getElementById("screen");
                 let ctx = screen.getContext("2d");
-                screen.width = 1280;
-                screen.height= 600;
+                screen.width = 640;
+                screen.height= 300;
                 let opened = false;
                 let start = origin;
                 if (!origin) {
@@ -240,6 +242,13 @@
                     }
                     return;
                 }
+                const checkWin = () => {
+                    for (let x = 0; x < size; x++) {
+                        for (let y = 0; y < size; y++) {
+
+                        }
+                    }
+                }
                 //generate bombs
                 let coords = [];
                 for (let x = 0; x < size; x++) {
@@ -247,8 +256,8 @@
                         coords.push(new Point(x, y));
                     }
                 }
-                while (game.running) {
-                    
+                const run = () => {
+                    ctx.clearRect(0, 0, screen.width, screen.height);
                     //draw world
                     if (firstFrame) {
                         bgMusic.play();
@@ -303,7 +312,7 @@
                             //check for flag
                             if (game.getTile(x, y).flag) {
                                 ctx.drawImage(flags[Math.floor(game.getTile(x, y).flagState)], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY - 8);
-                                game.getTile(x, y).flagState = Math.floor(game.getTile(x, y).flagState*100)/100 == 2.9 ? 0 : game.getTile(x, y).flagState + 0.1;
+                                game.getTile(x, y).flagState = Math.floor(game.getTile(x, y).flagState*500)/500 == 2.95 ? 0 : game.getTile(x, y).flagState + 0.05;
                             }
                             //check for number
                             let ovOpac = 1-(Math.sqrt((game.cursor.x - x)**2 + (game.cursor.y - y)**2)/20*3);
@@ -442,13 +451,13 @@
                         }
                     }
                     //refresh screen
-                    await new Promise( resolve => setTimeout(resolve, Math.round(1000/frameRate)));
-                    ctx.clearRect(0, 0, screen.width, screen.height);
+                    requestAnimationFrame(run);
                 }
+                run();
             }
             document.addEventListener("keypress", () => {
                 if (init) {
-                    runWorld(10, 10);
+                    runWorld(16, 40);
                     init = false;
                 }
             })

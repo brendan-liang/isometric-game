@@ -56,7 +56,6 @@
     <body>
         <canvas id="screen"></canvas>
         <img id="settings" src="assets/imgs/cog.png"></img>
-        <div id="cover"></div>
         <script>
             /*
              ______     ______     ______     __   __     _____     ______     __   __          __         __     ______     __   __     ______    
@@ -284,7 +283,7 @@
                         coords.push(new Point(x, y));
                     }
                 }
-                const run = () => {
+                const run = async () => {
                     ctx.clearRect(0, 0, screen.width, screen.height);
                     //draw world
                     if (firstFrame) {
@@ -302,9 +301,6 @@
                         for (let y = 0; y < size; y++) {
                             const animation = game.getTile(x, y).animation;
                             ctx.globalAlpha = animation.opacity;
-                            // if (game.getTile(x, y).bomb) {
-                            //     game.getTile(x, y).type = 2;
-                            // }
                             ctx.drawImage(tiles[game.getTile(x, y).type], start.x - y * 8 + x * 8 + animation.offsetX, start.y + y * 4 + x * 4 + animation.offsetY);
                             //check for animation
                             if (animation.type == 0) {
@@ -398,13 +394,7 @@
                                 if (game.getTile(game.cursor.x, game.cursor.y).bomb) {
                                     //blow up
                                     game.getTile(game.cursor.x, game.cursor.y).type = 2;
-                                    game.getTile(game.cursor.x, game.cursor.y).animation = {
-                                        type: 2,
-                                        offsetX: 0,
-                                        offsetY: 1,
-                                        opacity: 1,
-                                        stage: 0,
-                                    };
+                                    game.running = false;
                                 } else {
                                     game.getTile(game.cursor.x, game.cursor.y).type = 1;
                                     game.getTile(game.cursor.x, game.cursor.y).animation = {
@@ -433,7 +423,7 @@
                         })
                         setInterval(() => {
                             for (const key in keysPressed) {
-                                if (keysPressed[key].down && keysPressed[key].canPress) {
+                                if (keysPressed[key].down && keysPressed[key].canPress && game.running) {
                                     popSounds[Math.floor(Math.random()*4)].play();
                                     if (key == "w") {
                                         game.cursor.y -= game.cursor.y > 0 ? 1 : 0;
@@ -482,16 +472,27 @@
                     }
                     //refresh screen
                     if (game.running) {
-                        requestAnimationFrame(run);
+                        setTimeout(run, 17)
                     } else {
-                        document.getElementById("cover").style.opacity = 1;
+                        let text = "";
+                        ctx.font = "10vh Arial";
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+                        ctx.textAlign = "center";
+                        
+
                         if (checkWin()){
-
+                            text = "you won";
                         } else {
-
+                            text = "you lost";
                         }
+                        for (let i = 0; i < 10; i++) {
+                            ctx.fillRect(0, 0, screen.width, screen.height);
+                            await new Promise(resolve => setTimeout(resolve, 17));
+                        }
+                        ctx.fillStyle = "white";
+                        ctx.fillText(text, screen.width/2, screen.height/2);
+                        
                     }
-
                 }
                 run();
             }
